@@ -2,7 +2,7 @@
 
 # Verifica se o usuário passou um argumento
 if [ -z "$1" ]; then
-  echo "Uso: $0 <arquivo-log.txt>"
+  echo "Uso: scriptGitLogs <arquivo-log.txt> <sigla-anv-ou-flc>"
   exit 1
 fi
 
@@ -38,7 +38,7 @@ if [ ! -f "$LOG_FILE" ]; then
 fi
 
 # Gera o nome do arquivo de saída
-OUTPUT_FILE="${LOG_FILE%.txt}.formatado.txt"
+OUTPUT_FILE="${LOG_FILE%.txt}.log.txt"
 
 # Limpa o arquivo de saída
 > "$OUTPUT_FILE"
