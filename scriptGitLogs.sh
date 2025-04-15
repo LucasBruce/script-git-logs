@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# Verifica se o usuário passou um argumento
+if [ -z "$1" ]; then
+  echo "Uso: $0 <arquivo-log.txt>"
+  exit 1
+fi
+
+if [ -z "$2" ]; then
+  echo "Digite o Contexto FLC ou ANV!"
+  exit 1
+fi
+
+CONTEXT=""
+CURRENT_LINK_PRE=""
+CURRENT_LINK_SUF=""
+ACRONYM=$(echo "$2" | tr '[:lower:]' '[:upper:]')
+
+if [ "$ACRONYM" = "ANV" ]; then
+  CONTEXT="anv-configuracao-estatica"
+  CURRENT_LINK_PRE="https://fontes.intranet.bb.com.br/anv/anv-configuracao/$CONTEXT/-/blob/"
+  echo "✅ ANV-CONFIGURACAO-ESTATICA"
+elif [ "$ACRONYM" = "FLC" ]; then
+  CONTEXT="flc-caixa-relatorios"
+  CURRENT_LINK_PRE="https://fontes.intranet.bb.com.br/flc/$CONTEXT/-/blob/"
+  echo "✅ FLC-CAIXA-RELATORIOS"
+else
+  echo "Contexto inválido!"
+  exit 1
+fi
+
+LOG_FILE="$1"
+
+# Verifica se o arquivo existe
+if [ ! -f "$LOG_FILE" ]; then
+  echo "❌ Arquivo não encontrado: $LOG_FILE"
+  exit 1
+fi
+
+# Gera o nome do arquivo de saída
+OUTPUT_FILE="${LOG_FILE%.txt}.formatado.txt"
+
+# Limpa o arquivo de saída
+> "$OUTPUT_FILE"
+
+# Variável temporária para armazenar o hash atual
+CURRENT_HASH=""
+FULL_HASH=""
+
+# Processa linha por linha sempre atualizando a variavel CURRENT_HASH com o último hash capturado
+while IFS= read -r line; do
+# Captura o hash e pega os 10 primeiros caracteres
+if [[ "$line" =~ ^commit:\ \#([a-f0-9]+) ]]; then
+  FULL_HASH="${BASH_REMATCH[1]}"
+  CURRENT_HASH="${BASH_REMATCH[1]:0:10}"
+  echo "commit: ${CURRENT_HASH}" >> "$OUTPUT_FILE"
+  continue
+fi
+
+  if [[ "$line" =~ ^commit:\ \#([a-f0-9]+) ]]; then
+    CURRENT_HASH="${BASH_REMATCH[0]}"
+    echo "$line" >> "$OUTPUT_FILE"
+  elif [[ "$line" =~ ^[MAD]\	 ]]; then
+    status="${line:0:1}"
+    line="${line:2}"
+    echo "${status} ${CONTEXT}/${line}#${CURRENT_HASH} (LINK) $CURRENT_LINK_PRE${FULL_HASH}/${line}" >> "$OUTPUT_FILE"
+  else
+    echo "$line" >> "$OUTPUT_FILE"
+  fi
+done < "$LOG_FILE"
+
+echo "✅ Formatação Concluída: $OUTPUT_FILE"
+
+mv $OUTPUT_FILE ~/.logs
